@@ -1,4 +1,4 @@
 langchain
 boto3
-langchain==0.0.176
+langchain==0.0.267
 opensearch-py==2.2.0

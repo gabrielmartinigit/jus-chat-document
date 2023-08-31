@@ -119,6 +119,8 @@ def lambda_handler(event, context):
                 "bool": {"filter": {"term": {"metadata.source": key}}}
             },
         )
+        print(key)
+        print(result_docs)
 
         # Ask LLM
         sm_llm = SagemakerEndpoint(
