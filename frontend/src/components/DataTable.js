@@ -24,8 +24,8 @@ import Chat from "./Chat";
 
 const columns = [
   { id: "name", label: "Name", minWidth: 100 },
-  { id: "source", label: "Document", minWidth: 100 },
-  // { id: "summary", label: "Summary", minWidth: 100 },
+  { id: "source", label: "Script", minWidth: 100 },
+  { id: "report", label: "Report", minWidth: 100 },
   { id: "chat", label: "Chat", minWidth: 100 },
 ];
 
