@@ -12,9 +12,6 @@ from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
 
-# LLM
-from langchain.llms.sagemaker_endpoint import LLMContentHandler
-
 # Vector Store
 from langchain.vectorstores import OpenSearchVectorSearch
 
@@ -55,32 +52,6 @@ class EmbeddingsHandler(EmbeddingsContentHandler):
         return embeddings
 
 
-class LLMHandler(LLMContentHandler):
-    content_type = "application/json"
-    accepts = "application/json"
-
-    def transform_input(self, prompt: str, model_kwargs: dict) -> bytes:
-        input_str = json.dumps(
-            {
-                "inputs": [
-                    [
-                        {
-                            "role": "system",
-                            "content": "Crie um breve resumo em português.",
-                        },
-                        {"role": "user", "content": prompt},
-                    ]
-                ],
-                "parameters": {**model_kwargs},
-            }
-        )
-        return input_str.encode("utf-8")
-
-    def transform_output(self, output: bytes) -> str:
-        response_json = json.loads(output.read().decode("utf-8"))
-        return response_json[0]["generation"]["content"]
-
-
 def lambda_handler(event, context):
     # Get the bucket and key from the S3 event
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
@@ -98,7 +69,7 @@ def lambda_handler(event, context):
     for document in documents:
         document.metadata["source"] = f"{bucket}/{key}"
 
-    # Embed summary
+    # Embed
     embeddings = EmbeddingsEndpoint(
         endpoint_name="jumpstart-dft-hf-textembedding-all-minilm-l6-v2",
         region_name="us-east-1",
@@ -111,6 +82,7 @@ def lambda_handler(event, context):
         opensearch_url=OPENSEARCH_DOMAIN,
         index_name=OPENSEARCH_INDEX,
         embedding=embeddings,
+        engine="lucene",
     )
 
     return {"statusCode": 200, "body": "PDF preprocess successful"}

@@ -68,10 +68,11 @@ def lambda_handler(event, context):
         opensearch_url=OPENSEARCH_DOMAIN,
         index_name=OPENSEARCH_INDEX,
         embedding_function=embeddings,
+        engine="lucene",
     )
 
     results = vectordb.similarity_search(
-        query=query, k=10, search_type="script_scoring"
+        query=query, k=10, search_type="approximate_search"
     )
 
     # Format result

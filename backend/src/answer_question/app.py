@@ -25,6 +25,7 @@ OPENSEARCH_DOMAIN = f"https://{OPENSEARCH_USERNAME}:{OPENSEARCH_PASSWORD}@search
 OPENSEARCH_INDEX = "documents"
 
 s3 = boto3.client("s3")
+comprehend = boto3.client("comprehend")
 translate = boto3.client("translate")
 
 
@@ -68,7 +69,7 @@ class LLMHandler(LLMContentHandler):
                     [
                         {
                             "role": "system",
-                            "content": "Responda a pergunta com base no conteúdo.",
+                            "content": "You are a chatbot, answer the question if you know.",
                         },
                         {"role": "user", "content": prompt},
                     ]
@@ -81,6 +82,12 @@ class LLMHandler(LLMContentHandler):
     def transform_output(self, output: bytes) -> str:
         response_json = json.loads(output.read().decode("utf-8"))
         return response_json[0]["generation"]["content"]
+
+
+def detect_question_language(question):
+    languages = comprehend.detect_dominant_language(Text=question)
+
+    return languages["Languages"][0]["LanguageCode"]
 
 
 def lambda_handler(event, context):
@@ -101,11 +108,16 @@ def lambda_handler(event, context):
             opensearch_url=OPENSEARCH_DOMAIN,
             index_name=OPENSEARCH_INDEX,
             embedding_function=embeddings,
+            engine="lucene",
         )
 
         result_docs = vectordb.similarity_search(
             query=question,
             k=3,
+            search_type="approximate_search",
+            efficient_filter={
+                "bool": {"filter": {"term": {"metadata.source": key}}}
+            },
         )
 
         # Ask LLM
@@ -123,17 +135,17 @@ def lambda_handler(event, context):
 
         chain = load_qa_chain(llm=sm_llm, chain_type="stuff")
         answer = chain({"input_documents": result_docs, "question": question})
-        print(answer)
+
         answer["output_text"] = translate.translate_text(
             Text=answer["output_text"],
             SourceLanguageCode="auto",
-            TargetLanguageCode="pt",
+            TargetLanguageCode=detect_question_language(question),
         )["TranslatedText"]
 
         pages = ""
         for document in answer["input_documents"]:
-            pages = pages + str(document.metadata["page"]) + ", "
-        answer = f"{answer['output_text']} \n A fonte dessa resposta são as páginas {pages}."
+            pages = pages + str(document.metadata["page"]) + " "
+        answer = f"{answer['output_text']} Pg.: {pages}."
 
         return {
             "statusCode": 200,
@@ -154,6 +166,6 @@ def lambda_handler(event, context):
                 "Access-Control-Allow-Methods": "GET",
             },
             "body": json.dumps(
-                {"answer": "Não foi possível responder a sua pergunta."}
+                {"answer": "Not possible to answer your question."}
             ),
         }
