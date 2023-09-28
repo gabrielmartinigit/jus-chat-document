@@ -38,7 +38,6 @@ class EmbeddingsEndpoint(SagemakerEndpointEmbeddings):
 
         for i in range(0, len(texts), _chunk_size):
             response = self._embedding_func(texts[i : i + _chunk_size])
-            print
             results.extend(response)
 
         return results

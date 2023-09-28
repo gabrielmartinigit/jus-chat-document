@@ -26,7 +26,10 @@ function Chat({ document }) {
       setLoading(true);
       api
         .get("chat", {
-          params: { key: document.split("/")[1], question: question },
+          params: {
+            key: document.split("/")[1],
+            question: question,
+          },
         })
         .then((response) => {
           setChatHistory((chatHistory) => [
