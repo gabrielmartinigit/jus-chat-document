@@ -1,4 +1,4 @@
-# Justice Demo GenerativeAI
+# ScriptSense demo GenerativeAI
 
 ## Architecture
 
