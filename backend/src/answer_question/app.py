@@ -4,15 +4,10 @@ import json
 import boto3
 
 # Embedding
-from typing import List
-from langchain.embeddings import SagemakerEndpointEmbeddings
-from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
+from langchain.embeddings import BedrockEmbeddings
 
 # LLM
-from langchain.llms.sagemaker_endpoint import (
-    LLMContentHandler,
-    SagemakerEndpoint,
-)
+from langchain.llms import Bedrock
 from langchain.chains.question_answering import load_qa_chain
 
 # Vector Store
@@ -28,63 +23,17 @@ CONNECTION_STRING = (
     f"https://{OPENSEARCH_USERNAME}:{OPENSEARCH_PASSWORD}@{OPENSEARCH_DOMAIN}"
 )
 
+LLM_MODEL_ID = os.environ["LLM_MODEL_ID"]
+EMBEDDING_MODEL_ID = os.environ["EMBEDDING_MODEL_ID"]
+
 s3 = boto3.client("s3")
 comprehend = boto3.client("comprehend")
 translate = boto3.client("translate")
-
-
-class EmbeddingsEndpoint(SagemakerEndpointEmbeddings):
-    def embed_documents(
-        self, texts: List[str], chunk_size: int = 5
-    ) -> List[List[float]]:
-        results = []
-        _chunk_size = len(texts) if chunk_size > len(texts) else chunk_size
-
-        for i in range(0, len(texts), _chunk_size):
-            response = self._embedding_func(texts[i : i + _chunk_size])
-            results.extend(response)
-
-        return results
-
-
-class EmbeddingsHandler(EmbeddingsContentHandler):
-    content_type = "application/json"
-    accepts = "application/json"
-
-    def transform_input(self, prompt: str, model_kwargs={}) -> bytes:
-        input_str = json.dumps({"text_inputs": prompt, **model_kwargs})
-        return input_str.encode("utf-8")
-
-    def transform_output(self, output: bytes) -> str:
-        response_json = json.loads(output.read().decode("utf-8"))
-        embeddings = response_json["embedding"]
-        return embeddings
-
-
-class LLMHandler(LLMContentHandler):
-    content_type = "application/json"
-    accepts = "application/json"
-
-    def transform_input(self, prompt: str, model_kwargs: dict) -> bytes:
-        input_str = json.dumps(
-            {
-                "inputs": [
-                    [
-                        {
-                            "role": "system",
-                            "content": "You are a chatbot, answer the question if you know.",
-                        },
-                        {"role": "user", "content": prompt},
-                    ]
-                ],
-                "parameters": {**model_kwargs},
-            }
-        )
-        return input_str.encode("utf-8")
-
-    def transform_output(self, output: bytes) -> str:
-        response_json = json.loads(output.read().decode("utf-8"))
-        return response_json[0]["generation"]["content"]
+bedrock = boto3.client(
+    "bedrock-runtime",
+    endpoint_url="https://bedrock-runtime.us-east-1.amazonaws.com",
+    region_name="us-east-1",
+)
 
 
 def detect_question_language(question):
@@ -99,11 +48,9 @@ def lambda_handler(event, context):
         key = event["queryStringParameters"]["key"]
         question = event["queryStringParameters"]["question"]
 
-        # Embed prompt
-        embeddings = EmbeddingsEndpoint(
-            endpoint_name="jumpstart-dft-hf-textembedding-all-minilm-l6-v2",
-            region_name="us-east-1",
-            content_handler=EmbeddingsHandler(),
+        # Embed
+        embeddings = BedrockEmbeddings(
+            client=bedrock, model_id=EMBEDDING_MODEL_ID
         )
 
         # Search by similarity
@@ -111,34 +58,32 @@ def lambda_handler(event, context):
             opensearch_url=CONNECTION_STRING,
             index_name=OPENSEARCH_INDEX,
             embedding_function=embeddings,
-            engine="lucene",
+            engine="faiss",
         )
 
         result_docs = vectordb.similarity_search(
             query=question,
-            k=3,
-            search_type="approximate_search",
+            k=15,
             efficient_filter={
                 "bool": {"filter": {"term": {"metadata.source": key}}}
             },
         )
+
         print(key)
         print(result_docs)
 
         # Ask LLM
-        sm_llm = SagemakerEndpoint(
-            endpoint_name="jumpstart-dft-meta-textgeneration-llama-2-70b-f",
-            region_name="us-east-1",
+        llm = Bedrock(
+            model_id=LLM_MODEL_ID,
             model_kwargs={
-                "max_new_tokens": 2048,
-                "top_p": 0.1,
-                "temperature": 0.7,
+                "max_tokens_to_sample": 1000,
+                "temperature": 0.5,
+                "top_p": 0.7,
             },
-            content_handler=LLMHandler(),
-            endpoint_kwargs={"CustomAttributes": "accept_eula=true"},
+            client=bedrock,
         )
 
-        chain = load_qa_chain(llm=sm_llm, chain_type="stuff")
+        chain = load_qa_chain(llm=llm, chain_type="stuff")
         answer = chain({"input_documents": result_docs, "question": question})
 
         answer["output_text"] = translate.translate_text(
