@@ -19,10 +19,14 @@ from langchain.chains.question_answering import load_qa_chain
 from langchain.vectorstores import OpenSearchVectorSearch
 
 BUCKET_NAME = os.environ["BUCKET_NAME"]
-OPENSEARCH_USERNAME = "admin"
-OPENSEARCH_PASSWORD = "Amazon_Web_Services_123"
-OPENSEARCH_DOMAIN = f"https://{OPENSEARCH_USERNAME}:{OPENSEARCH_PASSWORD}@search-jus-domain-o4yxe4f3dx2g4xnn5x7yradww4.us-east-1.es.amazonaws.com"
-OPENSEARCH_INDEX = "documents"
+OPENSEARCH_USERNAME = os.environ["OPENSEARCH_USERNAME"]
+OPENSEARCH_PASSWORD = os.environ["OPENSEARCH_PASSWORD"]
+OPENSEARCH_DOMAIN = os.environ["OPENSEARCH_DOMAIN"]
+OPENSEARCH_INDEX = os.environ["OPENSEARCH_INDEX"]
+
+CONNECTION_STRING = (
+    f"https://{OPENSEARCH_USERNAME}:{OPENSEARCH_PASSWORD}@{OPENSEARCH_DOMAIN}"
+)
 
 s3 = boto3.client("s3")
 comprehend = boto3.client("comprehend")
@@ -104,7 +108,7 @@ def lambda_handler(event, context):
 
         # Search by similarity
         vectordb = OpenSearchVectorSearch(
-            opensearch_url=OPENSEARCH_DOMAIN,
+            opensearch_url=CONNECTION_STRING,
             index_name=OPENSEARCH_INDEX,
             embedding_function=embeddings,
             engine="lucene",

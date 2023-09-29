@@ -16,10 +16,15 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import OpenSearchVectorSearch
 
 
-OPENSEARCH_USERNAME = "admin"
-OPENSEARCH_PASSWORD = "Amazon_Web_Services_123"
-OPENSEARCH_DOMAIN = f"https://{OPENSEARCH_USERNAME}:{OPENSEARCH_PASSWORD}@search-jus-domain-o4yxe4f3dx2g4xnn5x7yradww4.us-east-1.es.amazonaws.com"
-OPENSEARCH_INDEX = "documents"
+OPENSEARCH_USERNAME = os.environ["OPENSEARCH_USERNAME"]
+OPENSEARCH_PASSWORD = os.environ["OPENSEARCH_PASSWORD"]
+OPENSEARCH_DOMAIN = os.environ["OPENSEARCH_DOMAIN"]
+OPENSEARCH_INDEX = os.environ["OPENSEARCH_INDEX"]
+
+CONNECTION_STRING = (
+    f"https://{OPENSEARCH_USERNAME}:{OPENSEARCH_PASSWORD}@{OPENSEARCH_DOMAIN}"
+)
+
 s3 = boto3.client("s3")
 
 
@@ -79,7 +84,7 @@ def lambda_handler(event, context):
     # Store to OpenSearch
     OpenSearchVectorSearch.from_documents(
         documents=documents,
-        opensearch_url=OPENSEARCH_DOMAIN,
+        opensearch_url=CONNECTION_STRING,
         index_name=OPENSEARCH_INDEX,
         embedding=embeddings,
         engine="lucene",

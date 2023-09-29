@@ -14,6 +14,20 @@ Globals:
       AllowHeaders: "'*'"
       AllowOrigin: "'*'"
 
+Parameters:
+  OPENSEARCHUSERNAME:
+    Type: String
+    Default: admin
+  OPENSEARCHPASSWORD:
+    Type: String
+    Default: Amazon_Web_Services_123
+  OPENSEARCHDOMAIN:
+    Type: String
+    Default: "search-jus-domain-o4yxe4f3dx2g4xnn5x7yradww4.us-east-1.es.amazonaws.com"
+  OPENSEARCHINDEX:
+    Type: String
+    Default: documents
+
 Resources:
   MediaBucket:
     Type: "AWS::S3::Bucket"
@@ -49,6 +63,12 @@ Resources:
         - AmazonSageMakerFullAccess
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::AccountId}-${AWS::Region}-media"
+      Environment:
+        Variables:
+          OPENSEARCH_USERNAME: !Ref OPENSEARCHUSERNAME
+          OPENSEARCH_PASSWORD: !Ref OPENSEARCHPASSWORD
+          OPENSEARCH_DOMAIN: !Ref OPENSEARCHDOMAIN
+          OPENSEARCH_INDEX: !Ref OPENSEARCHINDEX
       Events:
         MyS3Event:
           Type: S3
@@ -100,6 +120,10 @@ Resources:
       Environment:
         Variables:
           BUCKET_NAME: !Sub "${AWS::AccountId}-${AWS::Region}-media"
+          OPENSEARCH_USERNAME: !Ref OPENSEARCHUSERNAME
+          OPENSEARCH_PASSWORD: !Ref OPENSEARCHPASSWORD
+          OPENSEARCH_DOMAIN: !Ref OPENSEARCHDOMAIN
+          OPENSEARCH_INDEX: !Ref OPENSEARCHINDEX
       Events:
         AnswerQuestion:
           Type: Api
@@ -117,6 +141,12 @@ Resources:
         - x86_64
       Policies:
         - AmazonSageMakerFullAccess
+      Environment:
+        Variables:
+          OPENSEARCH_USERNAME: !Ref OPENSEARCHUSERNAME
+          OPENSEARCH_PASSWORD: !Ref OPENSEARCHPASSWORD
+          OPENSEARCH_DOMAIN: !Ref OPENSEARCHDOMAIN
+          OPENSEARCH_INDEX: !Ref OPENSEARCHINDEX
       Events:
         SearchDocs:
           Type: Api
