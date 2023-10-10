@@ -24,10 +24,10 @@ function TopMenu({ menu }) {
         <Toolbar sx={{ flexWrap: "wrap" }}>
           <Box sx={{ flexGrow: 0.02 }}>
             <Link component={RouterLink} to="/">
-              <img src={logo} alt="pje" width={80} />
+              <img src={logo} alt="logo" width={60} />
             </Link>
           </Box>
-          <Typography variant="h6">Chat Documents</Typography>
+          <Typography variant="h6">AWS Chat PDF</Typography>
           {menu.map((item) => (
             <Link
               component={RouterLink}

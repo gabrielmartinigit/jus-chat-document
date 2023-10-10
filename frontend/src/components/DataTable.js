@@ -19,13 +19,13 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import SummarizeIcon from "@mui/icons-material/Summarize";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import api from "../services/api";
-import searchContext from "../contexts/searchContext";
+import searchContext from "../contexts/SearchContext";
 import Chat from "./Chat";
 
 const columns = [
   { id: "name", label: "Name", minWidth: 100 },
-  { id: "source", label: "Document", minWidth: 100 },
-  // { id: "summary", label: "Summary", minWidth: 100 },
+  { id: "source", label: "Source", minWidth: 100 },
+  // { id: "report", label: "Report", minWidth: 100 },
   { id: "chat", label: "Chat", minWidth: 100 },
 ];
 

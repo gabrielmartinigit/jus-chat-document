@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { Button, Input, Box } from "@mui/material";
+import { Button, Input, Box, CircularProgress } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import api from "../services/api";
 import axios from "axios";
 
 const UploadDocument = () => {
   const [selectedFile, setSelectedFile] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
@@ -13,6 +14,7 @@ const UploadDocument = () => {
 
   const handleUpload = () => {
     if (selectedFile) {
+      setLoading(true);
       try {
         api
           .post(
@@ -34,14 +36,13 @@ const UploadDocument = () => {
             axios
               .post(response.data.url, formData)
               .then(() => {
-                console.log("upload com sucesso");
+                setSelectedFile(null);
+                setLoading(false);
               })
               .catch((error) => {
                 console.log(error);
               });
           });
-
-        setSelectedFile(null);
       } catch (error) {
         console.error("Error uploading file:", error);
       }
@@ -74,6 +75,7 @@ const UploadDocument = () => {
         Upload
       </Button>
       {selectedFile && <p>Selected file: {selectedFile.name}</p>}
+      {loading && <CircularProgress />}
     </Box>
   );
 };

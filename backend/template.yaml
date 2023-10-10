@@ -14,6 +14,26 @@ Globals:
       AllowHeaders: "'*'"
       AllowOrigin: "'*'"
 
+Parameters:
+  OPENSEARCHUSERNAME:
+    Type: String
+    Default: "<YOUR OPENSEARCH USERNAME>"
+  OPENSEARCHPASSWORD:
+    Type: String
+    Default: "<YOUR OPENSEARCH PASSWORD>"
+  OPENSEARCHDOMAIN:
+    Type: String
+    Default: "<YOUR OPENSEARCH ENDPOINT>"
+  OPENSEARCHINDEX:
+    Type: String
+    Default: "<YOUR OPENSEARCH INDEX>"
+  LLMMODELID:
+    Type: String
+    Default: "anthropic.claude-instant-v1"
+  EMBEDDINGMODELID:
+    Type: String
+    Default: "amazon.titan-embed-text-v1"
+
 Resources:
   MediaBucket:
     Type: "AWS::S3::Bucket"
@@ -46,9 +66,22 @@ Resources:
       Timeout: 600
       MemorySize: 2048
       Policies:
-        - AmazonSageMakerFullAccess
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::AccountId}-${AWS::Region}-media"
+        - Statement:
+            - Sid: BedrockPolicy
+              Effect: Allow
+              Action:
+                - bedrock:*
+              Resource: "*"
+      Environment:
+        Variables:
+          OPENSEARCH_USERNAME: !Ref OPENSEARCHUSERNAME
+          OPENSEARCH_PASSWORD: !Ref OPENSEARCHPASSWORD
+          OPENSEARCH_DOMAIN: !Ref OPENSEARCHDOMAIN
+          OPENSEARCH_INDEX: !Ref OPENSEARCHINDEX
+          LLM_MODEL_ID: !Ref LLMMODELID
+          EMBEDDING_MODEL_ID: !Ref EMBEDDINGMODELID
       Events:
         MyS3Event:
           Type: S3
@@ -92,14 +125,25 @@ Resources:
         - x86_64
       MemorySize: 2048
       Policies:
-        - AmazonSageMakerFullAccess
         - TranslateReadOnly
         - ComprehendReadOnly
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::AccountId}-${AWS::Region}-media"
+        - Statement:
+            - Sid: BedrockPolicy
+              Effect: Allow
+              Action:
+                - bedrock:*
+              Resource: "*"
       Environment:
         Variables:
           BUCKET_NAME: !Sub "${AWS::AccountId}-${AWS::Region}-media"
+          OPENSEARCH_USERNAME: !Ref OPENSEARCHUSERNAME
+          OPENSEARCH_PASSWORD: !Ref OPENSEARCHPASSWORD
+          OPENSEARCH_DOMAIN: !Ref OPENSEARCHDOMAIN
+          OPENSEARCH_INDEX: !Ref OPENSEARCHINDEX
+          LLM_MODEL_ID: !Ref LLMMODELID
+          EMBEDDING_MODEL_ID: !Ref EMBEDDINGMODELID
       Events:
         AnswerQuestion:
           Type: Api
@@ -116,7 +160,19 @@ Resources:
       Architectures:
         - x86_64
       Policies:
-        - AmazonSageMakerFullAccess
+        - Statement:
+            - Sid: BedrockPolicy
+              Effect: Allow
+              Action:
+                - bedrock:*
+              Resource: "*"
+      Environment:
+        Variables:
+          OPENSEARCH_USERNAME: !Ref OPENSEARCHUSERNAME
+          OPENSEARCH_PASSWORD: !Ref OPENSEARCHPASSWORD
+          OPENSEARCH_DOMAIN: !Ref OPENSEARCHDOMAIN
+          OPENSEARCH_INDEX: !Ref OPENSEARCHINDEX
+          EMBEDDING_MODEL_ID: !Ref EMBEDDINGMODELID
       Events:
         SearchDocs:
           Type: Api
