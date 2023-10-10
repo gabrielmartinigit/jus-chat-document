@@ -19,7 +19,7 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import SummarizeIcon from "@mui/icons-material/Summarize";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import api from "../services/api";
-import searchContext from "../contexts/SearchContext";
+import SearchContext from "../contexts/SearchContext";
 import Chat from "./Chat";
 
 const columns = [
@@ -30,7 +30,7 @@ const columns = [
 ];
 
 function DataTable({ query }) {
-  const { searchResults, setSearchResults } = React.useContext(searchContext);
+  const { searchResults, setSearchResults } = React.useContext(SearchContext);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [modalOpen, setModalOpen] = React.useState(false);

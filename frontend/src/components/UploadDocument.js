@@ -37,7 +37,10 @@ const UploadDocument = () => {
               .post(response.data.url, formData)
               .then(() => {
                 setSelectedFile(null);
-                setLoading(false);
+                // Add a 10-second delay before setting loading to false
+                setTimeout(() => {
+                  setLoading(false);
+                }, 10000); // 10000 milliseconds = 10 seconds
               })
               .catch((error) => {
                 console.log(error);
