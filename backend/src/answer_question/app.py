@@ -65,7 +65,16 @@ def lambda_handler(event, context):
             query=question,
             k=15,
             efficient_filter={
-                "bool": {"filter": {"term": {"metadata.source": key}}}
+                "bool": {
+                    "should": [
+                        {
+                            "match_phrase": {
+                                "metadata.source": key.replace(".pdf", "")
+                            }
+                        },
+                        {"match_phrase": {"metadata.source": key}},
+                    ]
+                }
             },
         )
 
