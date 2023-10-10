@@ -1,4 +1,4 @@
-# ScriptSense demo GenerativeAI
+# AWS Chat PDF demo Generative AI
 
 ## Architecture
 
