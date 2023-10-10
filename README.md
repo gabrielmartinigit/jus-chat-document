@@ -17,6 +17,7 @@ To deploy the solution it is necessary:
 
 ## Getting Started
 
-1. Deploy the [backend](./backend/README.md)
-2. Change the API endpoint in [services](./frontend/src/services/api.js)
-3. Deploy the [frontend](./frontend/README.md)
+1. Change the OpenSearch config in [SAM template](./backend/template.yaml)
+2. Deploy the [backend](./backend/README.md)
+3. Change the API endpoint in [services](./frontend/src/services/api.js)
+4. Deploy the [frontend](./frontend/README.md)

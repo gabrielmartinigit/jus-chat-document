@@ -17,16 +17,16 @@ Globals:
 Parameters:
   OPENSEARCHUSERNAME:
     Type: String
-    Default: admin
+    Default: "<YOUR OPENSEARCH USERNAME>"
   OPENSEARCHPASSWORD:
     Type: String
-    Default: Amazon_Web_Services_123
+    Default: "<YOUR OPENSEARCH PASSWORD>"
   OPENSEARCHDOMAIN:
     Type: String
-    Default: "search-jus-domain-o4yxe4f3dx2g4xnn5x7yradww4.us-east-1.es.amazonaws.com"
+    Default: "<YOUR OPENSEARCH ENDPOINT>"
   OPENSEARCHINDEX:
     Type: String
-    Default: documents
+    Default: "<YOUR OPENSEARCH INDEX>"
   LLMMODELID:
     Type: String
     Default: "anthropic.claude-instant-v1"
