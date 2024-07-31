@@ -38,13 +38,15 @@ function Home() {
           <FormControl fullWidth>
             <OutlinedInput
               id="outlined-adornment-amount"
-              placeholder="search documents"
+              placeholder="Pesquisar conteúdo do documento"
               onKeyDown={(event) => {
                 keyPress(event);
               }}
             />
           </FormControl>
-          <Box mt={10}>{prompt && <DataTable query={prompt} />}</Box>
+          <Box mt={10}>
+            <DataTable query={prompt} />
+          </Box>
         </ThemeProvider>
       </Container>
     </>

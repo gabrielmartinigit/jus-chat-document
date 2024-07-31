@@ -18,6 +18,7 @@ function Chat({ document }) {
   const keyPress = (event) => {
     if (event.key === "Enter") {
       setQuestion(event.target.value);
+      event.target.value = "";
     }
   };
 
@@ -29,6 +30,7 @@ function Chat({ document }) {
           params: {
             key: document.split("/")[1],
             question: question,
+            s3uri: document,
           },
         })
         .then((response) => {
@@ -50,10 +52,16 @@ function Chat({ document }) {
   }, [document, question, setChatHistory, setLoading]);
 
   return (
-    <Box sx={{ width: 550, p: 4, height: "100%" }} role="presentation">
+    <Box sx={{ width: 720, p: 4, height: "100%" }} role="presentation">
       <Box sx={{ overflow: "scroll", height: "95%", p: 1 }}>
         <Stack spacing={2}>
-          <ChatAnswer answer={"Ask a question for document: " + document} />
+          <ChatAnswer
+            answer={
+              "Olá! Sou o assistente processual de Inteligência Artifical. Posso te ajudar a extrair informações do documento '" +
+              document.split("/")[3] +
+              "'. Qual a sua pergunta?"
+            }
+          />
           {chatHistory.map((chat, index) => {
             return (
               <div key={index}>
@@ -70,7 +78,7 @@ function Chat({ document }) {
       <FormControl fullWidth>
         <OutlinedInput
           id="outlined-adornment-amount"
-          placeholder="ask a question"
+          placeholder="Faça uma pergunta"
           onKeyDown={(event) => {
             keyPress(event);
           }}

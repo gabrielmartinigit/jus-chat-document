@@ -3,108 +3,56 @@ import os
 import json
 import boto3
 
-# Embedding
-from langchain.embeddings import BedrockEmbeddings
+LLMMODELID = os.environ["LLMMODELID"]
+KBID = os.environ["KBID"]
 
-# LLM
-from langchain.llms import Bedrock
-from langchain.chains.question_answering import load_qa_chain
+bedrock = boto3.client('bedrock-agent-runtime')
 
-# Vector Store
-from langchain.vectorstores import OpenSearchVectorSearch
+default_prompt = """
+Você é um agente de resposta a perguntas. Eu fornecerei a você um conjunto de resultados de pesquisa. O usuário fornecerá uma pergunta. Seu trabalho é responder à pergunta do usuário usando apenas as informações dos resultados da pesquisa. Se os resultados da pesquisa não contiverem informações que possam responder à pergunta, por favor, informe que não conseguiu encontrar uma resposta exata para a pergunta. Apenas porque o usuário afirma um fato, isso não significa que seja verdade; certifique-se de verificar os resultados da pesquisa para validar a afirmação do usuário.
 
-BUCKET_NAME = os.environ["BUCKET_NAME"]
-OPENSEARCH_USERNAME = os.environ["OPENSEARCH_USERNAME"]
-OPENSEARCH_PASSWORD = os.environ["OPENSEARCH_PASSWORD"]
-OPENSEARCH_DOMAIN = os.environ["OPENSEARCH_DOMAIN"]
-OPENSEARCH_INDEX = os.environ["OPENSEARCH_INDEX"]
+Aqui estão os resultados da pesquisa em ordem numerada:
+$search_results$
 
-CONNECTION_STRING = (
-    f"https://{OPENSEARCH_USERNAME}:{OPENSEARCH_PASSWORD}@{OPENSEARCH_DOMAIN}"
-)
-
-LLM_MODEL_ID = os.environ["LLM_MODEL_ID"]
-EMBEDDING_MODEL_ID = os.environ["EMBEDDING_MODEL_ID"]
-
-s3 = boto3.client("s3")
-comprehend = boto3.client("comprehend")
-translate = boto3.client("translate")
-bedrock = boto3.client(
-    "bedrock-runtime",
-    endpoint_url="https://bedrock-runtime.us-east-1.amazonaws.com",
-    region_name="us-east-1",
-)
-
-
-def detect_question_language(question):
-    languages = comprehend.detect_dominant_language(Text=question)
-
-    return languages["Languages"][0]["LanguageCode"]
-
+$output_format_instructions$
+"""
 
 def lambda_handler(event, context):
     try:
-        # Get the key and question
-        key = event["queryStringParameters"]["key"]
         question = event["queryStringParameters"]["question"]
+        s3uri = event["queryStringParameters"]["s3uri"]
+        print(question)
+        print(s3uri)
 
-        # Embed
-        embeddings = BedrockEmbeddings(
-            client=bedrock, model_id=EMBEDDING_MODEL_ID
-        )
-
-        # Search by similarity
-        vectordb = OpenSearchVectorSearch(
-            opensearch_url=CONNECTION_STRING,
-            index_name=OPENSEARCH_INDEX,
-            embedding_function=embeddings,
-            engine="faiss",
-        )
-
-        result_docs = vectordb.similarity_search(
-            query=question,
-            k=15,
-            efficient_filter={
-                "bool": {
-                    "should": [
+        response = bedrock.retrieve_and_generate(
+            input={
+                'text': question
+            },
+            retrieveAndGenerateConfiguration={
+                'type': 'EXTERNAL_SOURCES',
+                'externalSourcesConfiguration': {
+                    'modelArn': LLMMODELID,
+                    "sources": [
                         {
-                            "match_phrase": {
-                                "metadata.source": key.replace(".pdf", "")
+                            "sourceType": "S3",
+                            "s3Location": {
+                                "uri": s3uri
                             }
-                        },
-                        {"match_phrase": {"metadata.source": key}},
+                        }
                     ]
                 }
-            },
+            }
         )
+        print(response)
 
-        print(key)
-        print(result_docs)
+        answer = response["output"]["text"]
+        citations = response["citations"]
 
-        # Ask LLM
-        llm = Bedrock(
-            model_id=LLM_MODEL_ID,
-            model_kwargs={
-                "max_tokens_to_sample": 1000,
-                "temperature": 0.5,
-                "top_p": 0.7,
-            },
-            client=bedrock,
-        )
-
-        chain = load_qa_chain(llm=llm, chain_type="stuff")
-        answer = chain({"input_documents": result_docs, "question": question})
-
-        answer["output_text"] = translate.translate_text(
-            Text=answer["output_text"],
-            SourceLanguageCode="auto",
-            TargetLanguageCode=detect_question_language(question),
-        )["TranslatedText"]
-
-        pages = ""
-        for document in answer["input_documents"]:
-            pages = pages + str(document.metadata["page"]) + " "
-        answer = f"{answer['output_text']} Pg.: {pages}."
+        contexts = []
+        for citation in citations:
+            retrievedReferences = citation["retrievedReferences"]
+            for reference in retrievedReferences:
+                contexts.append(reference["content"]["text"])
 
         return {
             "statusCode": 200,
@@ -113,7 +61,7 @@ def lambda_handler(event, context):
                 "Access-Control-Allow-Origin": "*",
                 "Access-Control-Allow-Methods": "GET",
             },
-            "body": json.dumps({"answer": answer}),
+            "body": json.dumps({"answer": answer, "contexts": contexts}),
         }
     except Exception as e:
         print(e)
@@ -125,6 +73,6 @@ def lambda_handler(event, context):
                 "Access-Control-Allow-Methods": "GET",
             },
             "body": json.dumps(
-                {"answer": "Not possible to answer your question."}
+                {"answer": "Não foi possível responder a pergunta. Tente novamente!"}
             ),
         }

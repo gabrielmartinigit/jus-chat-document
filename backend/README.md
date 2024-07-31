@@ -4,8 +4,8 @@
 
 ```bash
 sam validate
-sam build --use-container --no-cached
-sam deploy --stack-name chat-document-backend --resolve-s3 --resolve-image-repos --capabilities CAPABILITY_IAM
+sam build
+sam deploy --parameter-overrides LLMMODELID=00000000 KBID=00000000 DSID=000000 BUCKET=000000 --stack-name chat-backend --resolve-s3 --resolve-image-repos --capabilities CAPABILITY_IAM
 ```
 
 ## Local test

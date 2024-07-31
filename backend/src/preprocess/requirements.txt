@@ -1,4 +1,0 @@
-pypdf
-boto3==1.28.57
-langchain==0.0.304
-opensearch-py==2.3.1

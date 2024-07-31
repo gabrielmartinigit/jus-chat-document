@@ -3,12 +3,11 @@ import json
 import boto3
 from botocore.config import Config
 
-BUCKET = os.environ["BUCKET_NAME"]
+BUCKET = os.environ["BUCKET"]
 s3 = boto3.client("s3", config=Config(s3={"use_accelerate_endpoint": True}))
 
 
 def lambda_handler(event, context):
-    print(event)
     response = s3.generate_presigned_post(
         Bucket=BUCKET,
         Key=json.loads(event["body"])["filename"],

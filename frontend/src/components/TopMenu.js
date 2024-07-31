@@ -27,7 +27,7 @@ function TopMenu({ menu }) {
               <img src={logo} alt="logo" width={60} />
             </Link>
           </Box>
-          <Typography variant="h6">AWS Chat PDF</Typography>
+          <Typography variant="h6">Assistente Processual</Typography>
           {menu.map((item) => (
             <Link
               component={RouterLink}

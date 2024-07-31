@@ -4,8 +4,6 @@ Description: chat-document-backend
 
 Globals:
   Function:
-    Timeout: 30
-    MemorySize: 256
     Tracing: Active
   Api:
     TracingEnabled: true
@@ -15,59 +13,28 @@ Globals:
       AllowOrigin: "'*'"
 
 Parameters:
-  OPENSEARCHUSERNAME:
-    Type: String
-    Default: "<YOUR OPENSEARCH USERNAME>"
-  OPENSEARCHPASSWORD:
-    Type: String
-    Default: "<YOUR OPENSEARCH PASSWORD>"
-  OPENSEARCHDOMAIN:
-    Type: String
-    Default: "<YOUR OPENSEARCH ENDPOINT>"
-  OPENSEARCHINDEX:
-    Type: String
-    Default: "<YOUR OPENSEARCH INDEX>"
   LLMMODELID:
     Type: String
-    Default: "anthropic.claude-instant-v1"
-  EMBEDDINGMODELID:
+    Default: "anthropic.claude-3-sonnet-20240229-v1:0"
+  KBID:
     Type: String
-    Default: "amazon.titan-embed-text-v1"
+  DSID:
+    Type: String
+  BUCKET:
+    Type: String
 
 Resources:
-  MediaBucket:
-    Type: "AWS::S3::Bucket"
-    DeletionPolicy: Delete
-    Properties:
-      BucketName: !Sub "${AWS::AccountId}-${AWS::Region}-media"
-      AccelerateConfiguration:
-        AccelerationStatus: Enabled
-      CorsConfiguration:
-        CorsRules:
-          - AllowedHeaders:
-              - "*"
-            AllowedMethods:
-              - GET
-              - PUT
-              - POST
-            AllowedOrigins:
-              - "*"
-            Id: CORSRule
-            MaxAge: 3600
-
-  PreProcessDocumentFunction:
+  SyncKBFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/preprocess/
+      CodeUri: src/sync_kb/
       Handler: app.lambda_handler
-      Runtime: python3.9
+      Runtime: python3.12
       Architectures:
         - x86_64
-      Timeout: 600
-      MemorySize: 2048
       Policies:
         - S3CrudPolicy:
-            BucketName: !Sub "${AWS::AccountId}-${AWS::Region}-media"
+            BucketName: !Ref BUCKET
         - Statement:
             - Sid: BedrockPolicy
               Effect: Allow
@@ -76,38 +43,23 @@ Resources:
               Resource: "*"
       Environment:
         Variables:
-          OPENSEARCH_USERNAME: !Ref OPENSEARCHUSERNAME
-          OPENSEARCH_PASSWORD: !Ref OPENSEARCHPASSWORD
-          OPENSEARCH_DOMAIN: !Ref OPENSEARCHDOMAIN
-          OPENSEARCH_INDEX: !Ref OPENSEARCHINDEX
-          LLM_MODEL_ID: !Ref LLMMODELID
-          EMBEDDING_MODEL_ID: !Ref EMBEDDINGMODELID
-      Events:
-        MyS3Event:
-          Type: S3
-          Properties:
-            Bucket: !Ref MediaBucket
-            Events: s3:ObjectCreated:*
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: suffix
-                    Value: .pdf
+          KBID: !Ref KBID
+          DSID: !Ref DSID
 
   UploadDocumentFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/s3_presigned_upload/
       Handler: app.lambda_handler
-      Runtime: python3.9
+      Runtime: python3.12
       Architectures:
         - x86_64
       Policies:
         - S3CrudPolicy:
-            BucketName: !Sub "${AWS::AccountId}-${AWS::Region}-media"
+            BucketName: !Ref BUCKET
       Environment:
         Variables:
-          BUCKET_NAME: !Sub "${AWS::AccountId}-${AWS::Region}-media"
+          BUCKET: !Ref BUCKET
       Events:
         UploadDocument:
           Type: Api
@@ -120,15 +72,13 @@ Resources:
     Properties:
       CodeUri: src/answer_question/
       Handler: app.lambda_handler
-      Runtime: python3.9
+      Runtime: python3.12
       Architectures:
         - x86_64
-      MemorySize: 2048
+      Timeout: 30
       Policies:
-        - TranslateReadOnly
-        - ComprehendReadOnly
         - S3CrudPolicy:
-            BucketName: !Sub "${AWS::AccountId}-${AWS::Region}-media"
+            BucketName: !Ref BUCKET
         - Statement:
             - Sid: BedrockPolicy
               Effect: Allow
@@ -137,13 +87,8 @@ Resources:
               Resource: "*"
       Environment:
         Variables:
-          BUCKET_NAME: !Sub "${AWS::AccountId}-${AWS::Region}-media"
-          OPENSEARCH_USERNAME: !Ref OPENSEARCHUSERNAME
-          OPENSEARCH_PASSWORD: !Ref OPENSEARCHPASSWORD
-          OPENSEARCH_DOMAIN: !Ref OPENSEARCHDOMAIN
-          OPENSEARCH_INDEX: !Ref OPENSEARCHINDEX
-          LLM_MODEL_ID: !Ref LLMMODELID
-          EMBEDDING_MODEL_ID: !Ref EMBEDDINGMODELID
+          LLMMODELID: !Ref LLMMODELID
+          KBID: !Ref KBID
       Events:
         AnswerQuestion:
           Type: Api
@@ -156,7 +101,8 @@ Resources:
     Properties:
       CodeUri: src/search_docs/
       Handler: app.lambda_handler
-      Runtime: python3.9
+      Runtime: python3.12
+      Timeout: 15
       Architectures:
         - x86_64
       Policies:
@@ -168,11 +114,7 @@ Resources:
               Resource: "*"
       Environment:
         Variables:
-          OPENSEARCH_USERNAME: !Ref OPENSEARCHUSERNAME
-          OPENSEARCH_PASSWORD: !Ref OPENSEARCHPASSWORD
-          OPENSEARCH_DOMAIN: !Ref OPENSEARCHDOMAIN
-          OPENSEARCH_INDEX: !Ref OPENSEARCHINDEX
-          EMBEDDING_MODEL_ID: !Ref EMBEDDINGMODELID
+          KBID: !Ref KBID
       Events:
         SearchDocs:
           Type: Api
@@ -185,15 +127,15 @@ Resources:
     Properties:
       CodeUri: src/s3_presigned_download/
       Handler: app.lambda_handler
-      Runtime: python3.10
+      Runtime: python3.12
       Architectures:
         - x86_64
       Environment:
         Variables:
-          BUCKET_NAME: !Ref MediaBucket
+          BUCKET: !Ref BUCKET
       Policies:
         - S3ReadPolicy:
-            BucketName: !Ref MediaBucket
+            BucketName: !Ref BUCKET
       Events:
         S3PresignedUrl:
           Type: Api

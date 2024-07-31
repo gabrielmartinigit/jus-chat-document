@@ -2,7 +2,7 @@ import os
 import json
 import boto3
 
-BUCKET_NAME = os.environ["BUCKET_NAME"]
+BUCKET = os.environ["BUCKET"]
 
 s3_client = boto3.client("s3")
 
@@ -11,7 +11,7 @@ def lambda_handler(event, context):
     key = event["queryStringParameters"]["key"]
 
     url = s3_client.generate_presigned_url(
-        "get_object", Params={"Bucket": BUCKET_NAME, "Key": key}, ExpiresIn=300
+        "get_object", Params={"Bucket": BUCKET, "Key": key}, ExpiresIn=300
     )
 
     return {
